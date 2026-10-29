@@ -64,19 +64,19 @@ DD-Agent 把一套尽调方法论固化为可执行的代码流水线：
 
 ```
 ┌─────────────────────────────────────────────────────────┐
-│  接入层  CLI (click)  ·  Flask Web (登录/上传/进度/下载)    │
+│  接入层  CLI (click)  ·  Flask Web (登录/上传/进度/下载)    
 ├─────────────────────────────────────────────────────────┤
-│  编排层  dd_agent/orchestrator.py                          │
+│  编排层  dd_agent/orchestrator.py                          
 │  步骤状态追踪 · LLM 分类兜底 · 模块串联 · 事实/结论/留痕    │
 ├─────────────────────────────────────────────────────────┤
-│  分析层  inventory / analyzer / redflag / crosscheck /     │
-│          legal / qualification / management / operations / │
-│          ota / ocr / extractor                             │
+│  分析层  inventory / analyzer / redflag / crosscheck /     
+│          legal / qualification / management / operations / 
+│          ota / ocr / extractor                             
 ├─────────────────────────────────────────────────────────┤
-│  知识层  config/red_flags.yaml  +  config/industries/*.yaml │
-│  结果层  facts · verdict · trace · reporter(md/html/xlsx)  │
+│  知识层  config/red_flags.yaml  +  config/industries/*.yaml 
+│  结果层  facts · verdict · trace · reporter(md/html/xlsx)  
 ├─────────────────────────────────────────────────────────┤
-│  外部能力  PaddleOCR（扫描件） · Ollama / OpenAI 兼容 API   │
+│  外部能力  PaddleOCR（扫描件） · Ollama / OpenAI 兼容 API   
 └─────────────────────────────────────────────────────────┘
 ```
 
