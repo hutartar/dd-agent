@@ -1,0 +1,8 @@
+[project]
+name = "dd-agent"
+version = "0.1.0"
+description = "智能财务尽调分析系统"
+requires-python = ">=3.10"
+
+[project.scripts]
+dd-analyze = "dd_agent.cli:main"

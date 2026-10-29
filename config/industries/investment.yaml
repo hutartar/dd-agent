@@ -1,0 +1,86 @@
+# 股权投资 / 并购 / 基金项目
+id: investment
+name: 投资
+extends: generic
+description: 股权投资、并购、基金，关注估值、对赌回购、控制权和退出路径
+
+categories:
+  - category: 投资协议
+    keywords: [投资协议, 增资协议, 股权转让, 对赌, 回购, 清算优先, 优先购买, 反稀释]
+    module: legal
+  - category: 估值与测算
+    keywords: [估值, 收益率测算, irr, dpi, tvpi, 退出, 投资回报, 财务模型]
+    module: financial
+  - category: 交易结构
+    keywords: [交易结构, 持股平台, 员工持股, spv, 有限合伙, 基金架构]
+    module: management
+  - category: 关联交易
+    keywords: [关联交易, 资金占用, 往来款, 拆借]
+    module: legal
+
+metrics:
+  - id: valuation_multiple
+    name: 估值倍数
+    benchmark: "<=行业可比中位数"
+  - id: guarantee_coverage
+    name: 增信覆盖率
+    benchmark: ">=100%"
+  - id: related_party_ratio
+    name: 关联交易占比
+    benchmark: "<=10%"
+
+required_categories:
+  - 投资协议
+  - 估值与测算
+  - 公司章程
+
+redflags:
+  - id: INV001
+    name: 对赌/回购条款缺失
+    severity: high
+    category: 法律合规
+    description: 投资协议中未见对赌或回购条款，退出保障不足
+    trigger: "has_vam == 0"
+    explanation: "投资协议未见对赌或回购条款，若标的业绩不达预期，退出保障不足"
+  - id: INV002
+    name: 关联交易占比过高
+    severity: medium
+    category: 法律合规
+    description: 关联交易占比超过 30%
+    trigger: "related_party_ratio > 0.3"
+    explanation: "关联交易占比{related_party_ratio:.0%}，存在利益输送和资金占用风险"
+  - id: INV003
+    name: 实控人持股比例过低
+    severity: medium
+    category: 管理层与股东
+    description: 实际控制人持股低于 30%，控制权不稳定
+    trigger: "controller_stake < 0.3"
+    explanation: "实控人持股{controller_stake:.0%}，低于30%，控制权稳定性不足"
+
+sections:
+  - id: deal
+    title: 交易结构与估值
+    kind: investment_deal
+  - id: exit
+    title: 退出路径与增信措施
+    kind: investment_exit
+
+dimensions:
+  - id: deal
+    name: 交易结构与估值
+    weight: 0.25
+  - id: protection
+    name: 条款保护
+    weight: 0.25
+    categories: [法律合规]
+  - id: governance
+    name: 控制权与治理
+    weight: 0.20
+    categories: [管理层与股东]
+  - id: financial
+    name: 财务真实性
+    weight: 0.20
+    categories: [财务真实性, 盈利可持续性, 偿债能力]
+  - id: exit
+    name: 退出路径
+    weight: 0.10

@@ -1,0 +1,41 @@
+# ============================================================
+# DD-Agent 核心依赖（本地 / Docker 主流程必需）
+# ============================================================
+pandas>=2.0
+openpyxl>=3.1
+xlrd>=2.0
+pdfplumber>=0.10
+python-docx>=1.0
+matplotlib>=3.7
+numpy>=1.24
+pyyaml>=6.0
+rich>=13.0
+click>=8.0
+flask>=3.0
+requests>=2.31
+markdown>=3.5
+
+# PDF 渲染为图片（扫描版 OCR、图片型 PDF 内容校验）
+pypdfium2>=4.30
+# 图片读取（文件类型 / 尺寸识别）
+Pillow>=10.0
+# 访客个人 API Key 的 Fernet 加密落盘
+cryptography>=42.0
+
+# 扫描版文档 OCR 主后端（体积较大，首次安装会连带 PaddlePaddle）
+paddleocr>=2.7,<3.0
+
+# ============================================================
+# 可选依赖（不装不影响主流程，缺失时代码自动降级跳过）
+# ============================================================
+
+# 仅 Windows 下用本机 Office 把老版 .doc 转 .docx；Linux 请用 LibreOffice
+# pywin32>=306
+
+# OCR 备用后端（当前默认 PaddleOCR，以下两套仅在 Paddle 不可用时兜底）
+# easyocr
+# pytesseract
+# pdf2image
+
+# Linux / Docker 服务器部署用（本地 Windows 调试不需要）
+# gunicorn>=21.2

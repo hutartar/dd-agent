@@ -1,0 +1,36 @@
+# DD-Agent 全局配置
+project:
+  name: "DD-Agent 智能财务尽调系统"
+  version: "0.1.0"
+
+# 输出配置
+output:
+  dir: "output"
+  formats: ["md", "html"]  # docx 需要 python-docx
+  charts_dir: "charts"
+  chart_dpi: 150
+  chart_width: 16   # cm
+  chart_height: 9   # cm
+
+# 红旗严重程度阈值
+redflag:
+  high_score: 70
+  medium_score: 40
+  low_score: 0
+
+# LLM配置（可选，不配置则用规则引擎+模板生成报告）
+llm:
+  enabled: false
+  provider: "openai"   # openai / anthropic / local
+  model: "gpt-4o"
+  temperature: 0.2
+  max_tokens: 4096
+  # api_key: "sk-xxx"  # 从环境变量读取
+
+# 五大模块权重（用于完成度评分）
+modules:
+  financial_authenticity: 0.35
+  business_sustainability: 0.20
+  legal_compliance: 0.25
+  qualification: 0.10
+  management_shareholder: 0.10

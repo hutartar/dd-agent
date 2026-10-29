@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>登录 · DD-Agent</title>
+<style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+        background: linear-gradient(135deg, #f0f5ff 0%, #f5f7fa 100%);
+        min-height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #1d2129;
+        padding: 24px;
+    }
+    .card {
+        width: 100%;
+        max-width: 380px;
+        background: #fff;
+        border-radius: 16px;
+        padding: 40px 32px;
+        box-shadow: 0 8px 40px rgba(22, 93, 255, 0.12);
+    }
+    .brand { text-align: center; margin-bottom: 28px; }
+    .brand .logo {
+        width: 52px; height: 52px; margin: 0 auto 14px;
+        border-radius: 14px;
+        background: linear-gradient(135deg, #165DFF, #0E42D2);
+        color: #fff; font-size: 22px; font-weight: 700;
+        display: flex; align-items: center; justify-content: center;
+    }
+    .brand h1 { font-size: 20px; font-weight: 600; }
+    .brand p { margin-top: 6px; color: #86909c; font-size: 13px; }
+    label { display: block; font-size: 13px; color: #4e5969; margin-bottom: 6px; }
+    input[type=password] {
+        width: 100%; padding: 11px 14px; font-size: 15px;
+        border: 1px solid #c9cdd4; border-radius: 8px; outline: none;
+        transition: border-color .2s, box-shadow .2s;
+    }
+    input[type=password]:focus { border-color: #165DFF; box-shadow: 0 0 0 3px rgba(22,93,255,.12); }
+    button {
+        width: 100%; margin-top: 20px; padding: 12px;
+        background: #165DFF; color: #fff; border: none; border-radius: 8px;
+        font-size: 15px; cursor: pointer; transition: background .2s;
+    }
+    button:hover { background: #0E42D2; }
+    .error {
+        margin-top: 14px; padding: 9px 12px; border-radius: 8px;
+        background: #ffece8; color: #cb2634; font-size: 13px;
+        border: 1px solid #ffd2cc;
+    }
+    .foot { margin-top: 18px; text-align: center; color: #c9cdd4; font-size: 12px; }
+</style>
+</head>
+<body>
+    <form class="card" method="post">
+        <div class="brand">
+            <div class="logo">DD</div>
+            <h1>DD-Agent</h1>
+            <p>智能财务尽调系统</p>
+        </div>
+        <label for="password">访问密码</label>
+        <input id="password" name="password" type="password" autocomplete="current-password" autofocus placeholder="请输入密码">
+        <button type="submit">进入</button>
+        {% if error %}<div class="error">{{ error }}</div>{% endif %}
+        <div class="foot">密码由管理员在「设置」页修改</div>
+    </form>
+</body>
+</html>

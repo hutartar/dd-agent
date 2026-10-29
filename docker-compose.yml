@@ -1,0 +1,35 @@
+services:
+  app:
+    build: .
+    env_file:
+      - .env
+    environment:
+      DD_HOST: 0.0.0.0
+      DD_PORT: "5000"
+    volumes:
+      - ./data:/app/data
+      - ./web/results:/app/web/results
+      - ./web/uploads:/app/web/uploads
+      - ./output:/app/output
+    expose:
+      - "5000"
+    restart: unless-stopped
+
+  caddy:
+    image: caddy:2-alpine
+    environment:
+      DD_DOMAIN: ${DD_DOMAIN:-localhost}
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - app
+    restart: unless-stopped
+
+volumes:
+  caddy_data:
+  caddy_config:

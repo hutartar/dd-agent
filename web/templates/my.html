@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>我的模型 · DD-Agent</title>
+<style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+        background: #f5f7fa;
+        color: #1d2129;
+        line-height: 1.6;
+    }
+    .topbar { background: #fff; border-bottom: 1px solid #e5e6eb; }
+    .topbar-inner {
+        max-width: 760px; margin: 0 auto; padding: 14px 24px;
+        display: flex; align-items: center; justify-content: space-between;
+    }
+    .topbar .brand { font-weight: 700; color: #165DFF; text-decoration: none; font-size: 17px; }
+    .topbar nav a { color: #4e5969; text-decoration: none; font-size: 14px; margin-left: 18px; }
+    .topbar nav a:hover { color: #165DFF; }
+    .container { max-width: 760px; margin: 28px auto 60px; padding: 0 24px; }
+    .card {
+        background: #fff; border-radius: 12px; padding: 28px 30px;
+        box-shadow: 0 4px 20px rgba(0,0,0,.06);
+    }
+    .card h2 { font-size: 18px; font-weight: 600; margin-bottom: 6px; }
+    .hint { color: #86909c; font-size: 13px; margin-bottom: 18px; }
+    label { display: block; font-size: 13px; color: #4e5969; margin: 14px 0 6px; }
+    input[type=text], input[type=password] {
+        width: 100%; padding: 10px 13px; font-size: 14px;
+        border: 1px solid #c9cdd4; border-radius: 8px; outline: none;
+        transition: border-color .2s, box-shadow .2s;
+    }
+    input:focus { border-color: #165DFF; box-shadow: 0 0 0 3px rgba(22,93,255,.12); }
+    .switch { display: flex; align-items: center; gap: 9px; margin: 4px 0 18px; font-size: 14px; color: #1d2129; }
+    .switch input { width: 17px; height: 17px; accent-color: #165DFF; }
+    .choices { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 8px; }
+    .choice {
+        display: flex; gap: 10px; align-items: flex-start;
+        border: 1.5px solid #e5e6eb; border-radius: 10px; padding: 14px;
+        cursor: pointer; transition: all .15s; margin: 0;
+    }
+    .choice:hover { border-color: #94bfff; }
+    .choice.active { border-color: #165DFF; background: #f0f5ff; }
+    .choice input { margin-top: 3px; accent-color: #165DFF; }
+    .choice strong { display: block; font-size: 14px; color: #1d2129; }
+    .choice span { display: block; font-size: 12px; color: #86909c; margin-top: 2px; }
+    .fields { margin-top: 6px; }
+    .actions { display: flex; align-items: center; gap: 12px; margin-top: 20px; flex-wrap: wrap; }
+    button {
+        padding: 10px 22px; border-radius: 8px; font-size: 14px; cursor: pointer;
+        border: 1px solid #165DFF; transition: all .2s;
+    }
+    button.primary { background: #165DFF; color: #fff; }
+    button.primary:hover { background: #0E42D2; }
+    button.ghost { background: #fff; color: #165DFF; }
+    button.ghost:hover { background: #f0f5ff; }
+    .msg { display: block; flex-basis: 100%; margin-top: 6px; font-size: 13px; color: #86909c; }
+    .msg:empty { display: none; }
+    .msg.ok {
+        color: #00b42a;
+        background: #e8ffea;
+        border: 1px solid #b7eb8f;
+        padding: 7px 12px;
+        border-radius: 8px;
+    }
+    .msg.err {
+        color: #cb2634;
+        background: #ffece8;
+        border: 1px solid #ffd2cc;
+        padding: 7px 12px;
+        border-radius: 8px;
+    }
+    @media (max-width: 560px) {
+        .choices { grid-template-columns: 1fr; }
+        .card { padding: 22px 18px; }
+    }
+</style>
+</head>
+<body>
+<header class="topbar">
+    <div class="topbar-inner">
+        <a class="brand" href="/">DD-Agent</a>
+        <nav>
+            <a href="/">返回首页</a>
+            <a href="/logout">退出登录</a>
+        </nav>
+    </div>
+</header>
+
+<main class="container">
+    <section class="card">
+        <h2>我的模型</h2>
+        <p class="hint">
+            这里配置只影响你自己上传的任务，不会影响别人。不配置就使用服务器默认配置（Ollama）。
+            API Key 加密保存在服务器，只用于你自己的分析。
+        </p>
+
+        <label class="switch">
+            <input type="checkbox" id="enabled">
+            <span>启用 LLM（关掉则只用规则引擎，更快但文字更模板化）</span>
+        </label>
+
+        <div class="choices">
+            <label class="choice" data-provider="ollama">
+                <input type="radio" name="provider" value="ollama">
+                <div>
+                    <strong>Ollama</strong>
+                    <span>用自己的本地/内网模型</span>
+                </div>
+            </label>
+            <label class="choice" data-provider="api">
+                <input type="radio" name="provider" value="api">
+                <div>
+                    <strong>OpenAI 兼容 API</strong>
+                    <span>DeepSeek、硅基流动等，快</span>
+                </div>
+            </label>
+        </div>
+
+        <div class="fields" id="fields-ollama">
+            <label for="ollama-base">服务地址</label>
+            <input id="ollama-base" type="text" placeholder="http://localhost:11434">
+            <label for="ollama-model">模型名</label>
+            <input id="ollama-model" type="text" placeholder="qwen2.5:7b">
+        </div>
+
+        <div class="fields" id="fields-api">
+            <label for="api-base">接口地址</label>
+            <input id="api-base" type="text" placeholder="https://api.deepseek.com/v1">
+            <label for="api-model">模型名</label>
+            <input id="api-model" type="text" placeholder="deepseek-chat">
+            <label for="api-key">API Key</label>
+            <input id="api-key" type="password" autocomplete="off" placeholder="sk-...">
+        </div>
+
+        <div class="actions">
+            <button id="save" class="primary" type="button">保存</button>
+            <button id="test" class="ghost" type="button">测试连接</button>
+            <button id="clear" class="ghost" type="button">清除我的配置</button>
+            <span id="msg" class="msg"></span>
+        </div>
+    </section>
+</main>
+
+<script>
+const $ = (id) => document.getElementById(id);
+const initial = {{ config|tojson }};
+
+function currentProvider() {
+    const checked = document.querySelector('input[name=provider]:checked');
+    return checked ? checked.value : 'ollama';
+}
+
+function setProvider(provider) {
+    document.querySelectorAll('.choice').forEach((el) => {
+        el.classList.toggle('active', el.dataset.provider === provider);
+    });
+    document.querySelectorAll('input[name=provider]').forEach((el) => {
+        el.checked = el.value === provider;
+    });
+    $('fields-ollama').style.display = provider === 'ollama' ? '' : 'none';
+    $('fields-api').style.display = provider === 'api' ? '' : 'none';
+}
+
+function fill(data) {
+    data = data || {};
+    $('enabled').checked = data.enabled !== false;
+    const ollama = data.ollama || {};
+    const api = data.api || {};
+    $('ollama-base').value = ollama.base_url || '';
+    $('ollama-model').value = ollama.model || '';
+    $('api-base').value = api.base_url || '';
+    $('api-model').value = api.model || '';
+    const masked = api.api_key_masked || '';
+    $('api-key').value = '';
+    $('api-key').placeholder = masked ? `已保存：${masked}，留空不修改` : 'sk-...';
+    setProvider(data.provider || 'ollama');
+}
+
+async function post(url, body) {
+    const response = await fetch(url, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify(body),
+    });
+    return response.json();
+}
+
+function gather() {
+    return {
+        enabled: $('enabled').checked,
+        provider: currentProvider(),
+        ollama: {
+            base_url: $('ollama-base').value.trim(),
+            model: $('ollama-model').value.trim(),
+        },
+        api: {
+            base_url: $('api-base').value.trim(),
+            model: $('api-model').value.trim(),
+            api_key: $('api-key').value.trim(),
+        },
+    };
+}
+
+document.querySelectorAll('input[name=provider]').forEach((el) => {
+    el.addEventListener('change', () => setProvider(el.value));
+});
+
+$('save').addEventListener('click', async () => {
+    const msg = $('msg');
+    msg.textContent = '保存中…';
+    msg.className = 'msg';
+    try {
+        const data = await post('/api/my/llm', gather());
+        if (data.ok) {
+            fill(data.config);
+            msg.textContent = data.message;
+            msg.className = 'msg ok';
+        } else {
+            msg.textContent = data.message || '保存失败';
+            msg.className = 'msg err';
+        }
+    } catch (error) {
+        msg.textContent = '保存失败：' + error;
+        msg.className = 'msg err';
+    }
+});
+
+$('test').addEventListener('click', async () => {
+    const msg = $('msg');
+    msg.textContent = '测试中…';
+    msg.className = 'msg';
+    try {
+        const data = await post('/api/my/test', gather());
+        msg.textContent = data.message || (data.ok ? '连通' : '不通');
+        msg.className = data.ok ? 'msg ok' : 'msg err';
+    } catch (error) {
+        msg.textContent = '测试失败：' + error;
+        msg.className = 'msg err';
+    }
+});
+
+$('clear').addEventListener('click', async () => {
+    if (!confirm('清除后，你上传的任务会使用服务器默认配置，确定吗？')) {
+        return;
+    }
+    const msg = $('msg');
+    try {
+        const data = await post('/api/my/clear', {});
+        msg.textContent = data.message;
+        msg.className = 'msg ok';
+        fill({});
+    } catch (error) {
+        msg.textContent = '清除失败：' + error;
+        msg.className = 'msg err';
+    }
+});
+
+fill(initial);
+</script>
+</body>
+</html>

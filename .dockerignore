@@ -1,0 +1,12 @@
+web/results
+web/uploads
+web/test_output
+output
+data
+backup-*
+__pycache__
+*.pyc
+.git
+.venv
+venv
+.env

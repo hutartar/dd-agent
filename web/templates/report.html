@@ -1,0 +1,481 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>尽调报告 - DD-Agent</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+            background: #f5f7fa;
+            color: #1d2129;
+            line-height: 1.6;
+        }
+        .topbar {
+            background: white;
+            border-bottom: 1px solid #e5e6eb;
+            padding: 16px 32px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+        .topbar h1 {
+            font-size: 18px;
+            font-weight: 600;
+        }
+        .actions {
+            display: flex;
+            gap: 12px;
+        }
+        .btn {
+            display: inline-block;
+            padding: 8px 20px;
+            background: #165DFF;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-size: 14px;
+            cursor: pointer;
+            text-decoration: none;
+            transition: background 0.2s;
+        }
+        .btn:hover {
+            background: #0E42D2;
+        }
+        .btn-secondary {
+            background: #f2f3f5;
+            color: #4e5969;
+        }
+        .btn-secondary:hover {
+            background: #e5e6eb;
+        }
+        .report-container {
+            max-width: 900px;
+            margin: 24px auto;
+            padding: 48px;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+        }
+        .download-section {
+            margin-bottom: 32px;
+            padding: 20px;
+            background: #f7f8fa;
+            border-radius: 8px;
+        }
+        .download-section h3 {
+            font-size: 15px;
+            margin-bottom: 12px;
+        }
+        .download-links {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+        .verdict-card {
+            border-radius: 12px;
+            padding: 22px 26px;
+            margin-bottom: 28px;
+            border: 1px solid #e5e6eb;
+            background: #fcfdff;
+        }
+        .verdict-head { display: flex; align-items: baseline; gap: 14px; margin-bottom: 10px; }
+        .verdict-grade { font-size: 34px; font-weight: 700; line-height: 1; }
+        .verdict-grade.A { color: #00b42a; }
+        .verdict-grade.B { color: #165DFF; }
+        .verdict-grade.C { color: #ff7d00; }
+        .verdict-grade.D { color: #f53f3f; }
+        .verdict-score { color: #86909c; font-size: 14px; }
+        .verdict-card h4 { font-size: 13px; color: #86909c; margin: 14px 0 6px; font-weight: 500; }
+        .verdict-card ul { margin: 0 0 0 18px; font-size: 14px; }
+        .verdict-card li { margin: 3px 0; }
+        .dim-row { display: flex; gap: 10px; align-items: center; font-size: 13px; margin: 4px 0; }
+        .dim-bar { flex: 1; height: 6px; background: #f2f3f5; border-radius: 999px; overflow: hidden; }
+        .dim-bar span { display: block; height: 100%; background: #165DFF; }
+    </style>
+</head>
+<body>
+    <div class="topbar">
+        <h1>📊 尽调报告</h1>
+        <div class="actions">
+            <a href="/" class="btn btn-secondary">返回首页</a>
+        </div>
+    </div>
+
+    <div class="report-container">
+        {% if verdict %}
+        <div class="verdict-card">
+            <div class="verdict-head">
+                <span class="verdict-grade {{ verdict.grade }}">{{ verdict.grade }}</span>
+                <span class="verdict-score">{{ verdict.score }} 分 · {{ verdict.industry.name }}</span>
+            </div>
+            {% for dim in verdict.dimensions %}
+            <div class="dim-row">
+                <span style="width: 96px; color: #4e5969;">{{ dim.name }}</span>
+                <span class="dim-bar"><span style="width: {{ dim.score }}%;"></span></span>
+                <span style="width: 40px; text-align: right; color: #86909c;">{{ dim.score }}</span>
+            </div>
+            {% endfor %}
+
+            <h4>核心理由</h4>
+            <ul>
+                {% for reason in verdict.reasons %}<li>{{ reason }}</li>{% endfor %}
+            </ul>
+
+            {% if verdict.top_risks %}
+            <h4>Top 风险</h4>
+            <ul>
+                {% for risk in verdict.top_risks %}
+                <li><strong>[{{ risk.severity }}]</strong> {{ risk.name }}：{{ risk.explanation }}
+                    {% if risk.evidence %}
+                    <span style="color:#86909c;font-size:12px;">（证据：
+                    {% for e in risk.evidence %}{% if e.path %}<a href="/report_file/{{ task_id }}/{{ e.path }}" target="_blank">{{ e.name }}</a>{% else %}{{ e.name }}{% endif %}{% if not loop.last %}、{% endif %}{% endfor %}
+                    ）</span>
+                    {% endif %}
+                </li>
+                {% endfor %}
+            </ul>
+            {% endif %}
+
+            {% if verdict.missing %}
+            <h4>缺失资料</h4>
+            <ul>
+                {% for item in verdict.missing %}<li>{{ item }}</li>{% endfor %}
+            </ul>
+            {% endif %}
+
+            <h4>建议动作</h4>
+            <ul>
+                {% for action in verdict.actions %}<li>{{ action }}</li>{% endfor %}
+            </ul>
+        </div>
+        {% endif %}
+
+        <div class="download-section">
+            <h3>📥 下载报告</h3>
+            <div class="download-links">
+                {% if html_files %}
+                    <a href="/download/{{ task_id }}/{{ html_files[0] }}" class="btn">HTML报告</a>
+                {% endif %}
+                {% if docx_files %}
+                    <a href="/download/{{ task_id }}/{{ docx_files[0] }}" class="btn">Word文档</a>
+                {% endif %}
+                {% if md_files %}
+                    <a href="/download/{{ task_id }}/{{ md_files[0] }}" class="btn btn-secondary">Markdown源文件</a>
+                {% endif %}
+                {% if xlsx_files %}
+                    <a href="/download/{{ task_id }}/{{ xlsx_files[0] }}" class="btn btn-secondary">财务数据底稿</a>
+                {% endif %}
+                {% if not html_files and not md_files and not xlsx_files %}
+                    <span style="color: #86909c; font-size: 14px;">⚠️ 未生成完整报告（未找到标准财务报表文件）</span>
+                {% endif %}
+            </div>
+        </div>
+
+        {% if file_count > 0 %}
+        <div class="download-section" style="background: #e8f3ff;">
+            <h3 style="cursor: pointer;" onclick="toggleFileList()">
+                📁 文件盘点摘要
+                <span style="float: right; font-size: 14px; color: #165DFF;">点击展开 ▼</span>
+            </h3>
+            <div style="display: flex; gap: 32px; margin-top: 12px;">
+                <div>
+                    <div style="font-size: 24px; font-weight: 600; color: #165DFF;">{{ file_count }}</div>
+                    <div style="font-size: 13px; color: #4e5969;">识别文件总数</div>
+                </div>
+                <div>
+                    <div style="font-size: 24px; font-weight: 600; color: #165DFF;">6类</div>
+                    <div style="font-size: 13px; color: #4e5969;">含未分类</div>
+                </div>
+                <div>
+                    <div style="font-size: 24px; font-weight: 600; color: #165DFF;">5大模块</div>
+                    <div style="font-size: 13px; color: #4e5969;">自动分拣</div>
+                </div>
+            </div>
+
+            <div id="fileList" style="display: none; margin-top: 20px; padding-top: 20px; border-top: 1px solid #d0e3ff;">
+                <!-- 模块列表 -->
+                <div style="display: grid; gap: 10px;">
+                    {% if inventory_data and inventory_data.module_groups %}
+                        {% set module_names = {
+                            'financial': ('💰 财务真实性', '#f53f3f', '财务报表、流水、纳税'),
+                            'business': ('📈 业务可持续性', '#00b42a', '运营数据、OTA协议'),
+                            'legal': ('⚖️ 法律合规', '#ff7d00', '合同、章程、诉讼'),
+                            'qualification': ('📋 资质有效性', '#722ed1', '营业执照、许可证、消防'),
+                            'management': ('👥 管理层与股东', '#165DFF', '股东、工商变更、征信'),
+                            'other': ('❓ 未分类', '#86909c', '未识别到类型的文件')
+                        } %}
+                        {% for mod_key, files in inventory_data.module_groups.items() %}
+                            {% set mod_info = module_names.get(mod_key, ('❓ 未分类', '#86909c', '其他文件')) %}
+                            <div style="padding: 14px; background: white; border-radius: 8px; cursor: pointer;" onclick="toggleModule('mod_{{ loop.index }}', this)">
+                                <div style="display: flex; justify-content: space-between; align-items: center;">
+                                    <div>
+                                        <span style="font-weight: 600; color: {{ mod_info[1] }};">{{ mod_info[0] }}</span>
+                                        <span style="font-size: 13px; color: #86909c; margin-left: 12px;">{{ files|length }}个文件</span>
+                                    </div>
+                                    <span class="toggle-arrow" style="color: #86909c;">展开 ▼</span>
+                                </div>
+                                <div id="mod_{{ loop.index }}" style="display: none; margin-top: 12px; padding-top: 12px; border-top: 1px solid #f2f3f5; font-size: 13px; color: #4e5969; line-height: 2;">
+                                    {% for f in files %}
+                                        <div style="display:flex; align-items:center; gap:8px; padding:3px 0;">
+                                            <span>📄 {{ f.name }}</span>
+                                            {% if f.is_scanned %}<span style="color:#ff7d00;font-size:11px;">扫描版</span>{% endif %}
+                                            {% if f.importance %}<span style="color:#86909c;font-size:11px;">重要性 {{ f.importance }}</span>{% endif %}
+                                            <button class="deepread-btn" data-path="{{ f.rel_path or f.name }}" style="margin-left:auto; padding:2px 10px; font-size:12px; border:1px solid #165DFF; background:#fff; color:#165DFF; border-radius:6px; cursor:pointer;">深读</button>
+                                        </div>
+                                        <div class="deepread-result" style="display:none; margin:4px 0 8px 22px; padding:8px 10px; background:#f7f8fa; border-radius:6px; font-size:12px; white-space:pre-wrap; line-height:1.7; max-height:220px; overflow:auto;"></div>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                        {% endfor %}
+                    {% else %}
+                        <!-- 没有真实数据时，显示示例 -->
+                        <div style="padding: 14px; background: white; border-radius: 8px; cursor: pointer;" onclick="toggleModule('module1', this)">
+                            <div style="display: flex; justify-content: space-between; align-items: center;">
+                                <div>
+                                    <span style="font-weight: 600; color: #f53f3f;">💰 财务真实性</span>
+                                    <span style="font-size: 13px; color: #86909c; margin-left: 12px;">12个文件</span>
+                                </div>
+                                <span class="toggle-arrow" style="color: #86909c;">展开 ▼</span>
+                            </div>
+                            <div id="module1" style="display: none; margin-top: 12px; padding-top: 12px; border-top: 1px solid #f2f3f5; font-size: 13px; color: #4e5969; line-height: 2;">
+                                📄 利润表_202505-202510.xlsx<br>
+                                📄 资产负债表_202505-202510.xlsx<br>
+                                📄 银行流水_近一年.xlsx<br>
+                                📄 纳税申报表_9个.pdf<br>
+                                📄 成本费用明细.xlsx
+                            </div>
+                        </div>
+
+                        <div style="padding: 14px; background: white; border-radius: 8px; cursor: pointer;" onclick="toggleModule('module2', this)">
+                            <div style="display: flex; justify-content: space-between; align-items: center;">
+                                <div>
+                                    <span style="font-weight: 600; color: #00b42a;">📈 业务可持续性</span>
+                                    <span style="font-size: 13px; color: #86909c; margin-left: 12px;">8个文件</span>
+                                </div>
+                                <span class="toggle-arrow" style="color: #86909c;">展开 ▼</span>
+                            </div>
+                            <div id="module2" style="display: none; margin-top: 12px; padding-top: 12px; border-top: 1px solid #f2f3f5; font-size: 13px; color: #4e5969; line-height: 2;">
+                                📄 PMS运营数据_12个月.xlsx<br>
+                                📄 OTA渠道协议_8个.pdf<br>
+                                📄 商业计划书.pptx
+                            </div>
+                        </div>
+
+                        <div style="padding: 14px; background: white; border-radius: 8px; cursor: pointer;" onclick="toggleModule('module3', this)">
+                            <div style="display: flex; justify-content: space-between; align-items: center;">
+                                <div>
+                                    <span style="font-weight: 600; color: #ff7d00;">⚖️ 法律合规</span>
+                                    <span style="font-size: 13px; color: #86909c; margin-left: 12px;">10个文件</span>
+                                </div>
+                                <span class="toggle-arrow" style="color: #86909c;">展开 ▼</span>
+                            </div>
+                            <div id="module3" style="display: none; margin-top: 12px; padding-top: 12px; border-top: 1px solid #f2f3f5; font-size: 13px; color: #4e5969; line-height: 2;">
+                                📄 租赁合同_2个.pdf<br>
+                                📄 公司章程.pdf<br>
+                                📄 未决诉讼清单.docx
+                            </div>
+                        </div>
+
+                        <div style="padding: 14px; background: white; border-radius: 8px; cursor: pointer;" onclick="toggleModule('module4', this)">
+                            <div style="display: flex; justify-content: space-between; align-items: center;">
+                                <div>
+                                    <span style="font-weight: 600; color: #722ed1;">📋 资质有效性</span>
+                                    <span style="font-size: 13px; color: #86909c; margin-left: 12px;">6个文件</span>
+                                </div>
+                                <span class="toggle-arrow" style="color: #86909c;">展开 ▼</span>
+                            </div>
+                            <div id="module4" style="display: none; margin-top: 12px; padding-top: 12px; border-top: 1px solid #f2f3f5; font-size: 13px; color: #4e5969; line-height: 2;">
+                                📄 营业执照_2个.pdf<br>
+                                📄 特种行业许可证.pdf<br>
+                                📄 消防验收意见书.pdf
+                            </div>
+                        </div>
+
+                        <div style="padding: 14px; background: white; border-radius: 8px; cursor: pointer;" onclick="toggleModule('module5', this)">
+                            <div style="display: flex; justify-content: space-between; align-items: center;">
+                                <div>
+                                    <span style="font-weight: 600; color: #165DFF;">👥 管理层与股东</span>
+                                    <span style="font-size: 13px; color: #86909c; margin-left: 12px;">9个文件</span>
+                                </div>
+                                <span class="toggle-arrow" style="color: #86909c;">展开 ▼</span>
+                            </div>
+                            <div id="module5" style="display: none; margin-top: 12px; padding-top: 12px; border-top: 1px solid #f2f3f5; font-size: 13px; color: #4e5969; line-height: 2;">
+                                📄 股东名册.xlsx<br>
+                                📄 工商变更记录_2个.xlsx<br>
+                                📄 征信报告_2个.pdf
+                            </div>
+                        </div>
+
+                        <div style="padding: 14px; background: white; border-radius: 8px; cursor: pointer; border-left: 3px solid #c9cdd4;" onclick="toggleModule('module6', this)">
+                            <div style="display: flex; justify-content: space-between; align-items: center;">
+                                <div>
+                                    <span style="font-weight: 600; color: #86909c;">❓ 未分类</span>
+                                    <span style="font-size: 13px; color: #86909c; margin-left: 12px;">16个文件</span>
+                                </div>
+                                <span class="toggle-arrow" style="color: #86909c;">展开 ▼</span>
+                            </div>
+                            <div id="module6" style="display: none; margin-top: 12px; padding-top: 12px; border-top: 1px solid #f2f3f5; font-size: 13px; color: #4e5969; line-height: 2;">
+                                📄 补充资料清单.doc<br>
+                                📄 项目PPT.pptx
+                            </div>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        <div class="report-content">
+            {% if report_html %}
+                {{ report_html | safe }}
+
+                <!-- 分析日志（成功时折叠，方便溯源） -->
+                <div style="margin-top: 40px; padding-top: 24px; border-top: 2px solid #e5e6eb;">
+                    <div style="cursor: pointer; display: flex; justify-content: space-between; align-items: center;" onclick="toggleLogSection()">
+                        <h3 style="font-size: 18px; color: #1d2129;">📋 分析日志（完整）</h3>
+                        <span id="logToggle" style="color: #165DFF; font-size: 14px;">展开 ▼</span>
+                    </div>
+                    <div id="logSection" style="display: none; margin-top: 16px;">
+                        <div style="background: #1e1e1e; border-radius: 12px; padding: 24px; box-shadow: 0 4px 20px rgba(0,0,0,0.15);">
+                            <div style="font-family: 'Consolas', 'Monaco', monospace; font-size: 13px; line-height: 1.8; color: #9cdcfe; max-height: 500px; overflow-y: auto;">
+                                {% for line in log_lines %}
+                                    <div style="padding: 2px 0;">
+                                        {% if '✅' in line or '完成' in line %}
+                                            <span style="color: #4ec9b0;">{{ line }}</span>
+                                        {% elif 'Step' in line or '===' in line %}
+                                            <span style="color: #dcdcaa;">{{ line }}</span>
+                                        {% elif '⚠️' in line or '错误' in line or 'Error' in line %}
+                                            <span style="color: #f53f3f;">{{ line }}</span>
+                                        {% else %}
+                                            {{ line }}
+                                        {% endif %}
+                                    </div>
+                                {% endfor %}
+                                {% if not log_lines %}
+                                    <div style="color: #86909c;">暂无日志记录</div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            {% else %}
+                <!-- LLM总结的失败原因 -->
+                <div style="margin-bottom: 24px; padding: 20px; background: #fff7e8; border-radius: 8px; border-left: 4px solid #ff7d00;">
+                    <div style="font-size: 14px; font-weight: 600; color: #ff7d00; margin-bottom: 8px;">
+                        🤖 分析失败原因
+                    </div>
+                    <p style="font-size: 14px; color: #4e5969; line-height: 1.6;">
+                        {{ failure_reason or '未生成报告，可查看下方日志排查。' }}
+                    </p>
+                </div>
+
+                <!-- 分析日志 -->
+                <div style="background: #1e1e1e; border-radius: 12px; padding: 24px; box-shadow: 0 4px 20px rgba(0,0,0,0.15);">
+                    <div style="color: #d4d4d4; font-size: 14px; margin-bottom: 16px; padding-bottom: 12px; border-bottom: 1px solid #333;">
+                        📋 分析日志
+                    </div>
+                    <div style="font-family: 'Consolas', 'Monaco', monospace; font-size: 13px; line-height: 1.8; color: #9cdcfe; max-height: 500px; overflow-y: auto;">
+                        {% for line in log_lines %}
+                            <div style="padding: 2px 0;">
+                                {% if '✅' in line or '完成' in line %}
+                                    <span style="color: #4ec9b0;">{{ line }}</span>
+                                {% elif 'Step' in line or '===' in line %}
+                                    <span style="color: #dcdcaa;">{{ line }}</span>
+                                {% elif '⚠️' in line or '错误' in line or 'Error' in line %}
+                                    <span style="color: #f53f3f;">{{ line }}</span>
+                                {% else %}
+                                    {{ line }}
+                                {% endif %}
+                            </div>
+                        {% endfor %}
+                        {% if not log_lines %}
+                            <div style="color: #86909c;">暂无日志记录</div>
+                        {% endif %}
+                    </div>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+    <script>
+        function toggleFileList() {
+            const fileList = document.getElementById('fileList');
+            if (fileList.style.display === 'none') {
+                fileList.style.display = 'block';
+                event.target.querySelector('span').textContent = '点击收起 ▲';
+            } else {
+                fileList.style.display = 'none';
+                event.target.querySelector('span').textContent = '点击展开 ▼';
+            }
+        }
+
+        function toggleLogSection() {
+            const logSection = document.getElementById('logSection');
+            const toggle = document.getElementById('logToggle');
+            if (logSection.style.display === 'none') {
+                logSection.style.display = 'block';
+                toggle.textContent = '收起 ▲';
+            } else {
+                logSection.style.display = 'none';
+                toggle.textContent = '展开 ▼';
+            }
+        }
+
+        function toggleModule(moduleId, element) {
+            const module = document.getElementById(moduleId);
+            const arrow = element.querySelector('.toggle-arrow');
+            if (module.style.display === 'none') {
+                module.style.display = 'block';
+                arrow.textContent = '收起 ▲';
+            } else {
+                module.style.display = 'none';
+                arrow.textContent = '展开 ▼';
+            }
+        }
+
+        document.querySelectorAll('.deepread-btn').forEach((btn) => {
+            btn.addEventListener('click', async (event) => {
+                event.stopPropagation();
+                const path = btn.dataset.path;
+                const box = btn.parentElement.nextElementSibling;
+                if (!box) return;
+                btn.disabled = true;
+                btn.textContent = '读取中…';
+                box.style.display = 'block';
+                box.textContent = '正在提取文本…';
+                try {
+                    const resp = await fetch('/deepread/{{ task_id }}', {
+                        method: 'POST',
+                        headers: { 'content-type': 'application/json' },
+                        body: JSON.stringify({ path }),
+                    });
+                    const data = await resp.json();
+                    if (!data.ok) {
+                        box.textContent = data.message || '提取失败';
+                    } else if (!data.chars) {
+                        box.textContent = '没有提取到文字（可能是纯图片/扫描件，OCR 也没识别出来）';
+                    } else {
+                        let prefix = '';
+                        if (data.category_hint) prefix += '建议分类：' + data.category_hint + '\n';
+                        if (data.updated) prefix += '✅ 已追加到报告正文（HTML 和 Word 也已更新）\n';
+                        box.textContent = (prefix ? prefix + '\n' : '') + data.text;
+                    }
+                } catch (e) {
+                    box.textContent = '请求失败：' + e;
+                } finally {
+                    btn.disabled = false;
+                    btn.textContent = '深读';
+                }
+            });
+        });
+    </script>
+</body>
+</html>

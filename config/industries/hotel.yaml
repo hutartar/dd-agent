@@ -1,0 +1,83 @@
+# 酒店 / 民宿 / 度假村
+id: hotel
+name: 酒店
+extends: generic
+description: 酒店、民宿、度假村，关注入住率、RevPAR、OTA 渠道和租约
+
+categories:
+  - category: OTA渠道协议
+    keywords: [ota, 携程, 美团, 飞猪, 抖音, 去哪儿, 马蜂窝, 渠道协议]
+    module: business
+  - category: PMS运营数据
+    keywords: [pms, 入住率, 出租率, revpar, adr, 客房收入, 客源结构]
+    module: business
+  - category: 租赁合同
+    keywords: [租赁合同, 场地租赁, 房屋租赁, 租约]
+    module: legal
+
+metrics:
+  - id: occupancy_rate
+    name: 入住率
+    benchmark: ">=60%"
+  - id: revpar
+    name: RevPAR
+    benchmark: ">=250 元"
+  - id: gross_margin
+    name: 毛利率
+    benchmark: "60%-70%"
+
+required_categories:
+  - 租赁合同
+  - PMS运营数据
+
+redflags:
+  - id: HOTEL001
+    name: 入住率过低
+    severity: high
+    category: 业务可持续性
+    description: 入住率低于 35%，经营获客明显不足
+    trigger: "occupancy_rate < 0.35"
+    explanation: "入住率{occupancy_rate:.0%}，低于35%警戒线，经营获客明显不足"
+  - id: HOTEL002
+    name: OTA佣金过高
+    severity: medium
+    category: 业务可持续性
+    description: OTA 佣金率超过 20%，渠道依赖过重
+    trigger: "ota_commission_rate > 0.2"
+    explanation: "OTA佣金率{ota_commission_rate:.0%}，渠道依赖过重，议价能力弱"
+  - id: HOTEL003
+    name: 租约期限过短
+    severity: medium
+    category: 法律合规
+    description: 剩余租期不足 3 年，经营稳定性存疑
+    trigger: "lease_remaining_years < 3"
+    explanation: "剩余租期约{lease_remaining_years:.1f}年，短于3年，续租不确定性高"
+
+sections:
+  - id: operations
+    title: 经营分析（入住率 / RevPAR）
+    kind: hotel_operations
+  - id: ota
+    title: OTA渠道协议分析
+    kind: ota
+
+dimensions:
+  - id: operation
+    name: 经营质量
+    weight: 0.30
+    categories: [业务可持续性, 业务稳定性]
+  - id: financial
+    name: 财务真实性
+    weight: 0.25
+    categories: [财务真实性, 收入真实性, 成本与费用质量, 盈利可持续性, 偿债能力, 资产质量, 运营效率]
+  - id: lease
+    name: 租约与成本
+    weight: 0.20
+    categories: [法律合规]
+  - id: channel
+    name: 渠道结构
+    weight: 0.10
+  - id: compliance
+    name: 资质合规
+    weight: 0.15
+    categories: [资质有效性]

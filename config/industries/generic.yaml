@@ -1,0 +1,94 @@
+# 通用行业包：所有行业共享的底座
+id: generic
+name: 通用
+description: 跨行业通用尽调底座（财务真实性 / 法律合规 / 资质 / 治理）
+
+categories: []
+
+required_categories:
+  - 营业执照
+  - 利润表
+  - 资产负债表
+  - 银行流水
+  - 纳税申报
+
+sections:
+  - id: conclusion
+    title: 尽调结论
+    kind: verdict
+  - id: risks
+    title: 主要风险点
+    kind: redflags
+  - id: financial
+    title: 财务数据明细
+    kind: financial
+  - id: crosscheck
+    title: 跨模块交叉验证
+    kind: crosscheck
+  - id: legal
+    title: 法律合规与或有事项
+    kind: legal
+  - id: management
+    title: 管理层与股东
+    kind: management
+  - id: evidence
+    title: 数据留痕
+    kind: evidence
+
+# 分析维度：评分、报告章节、结论都按这个来。
+# categories 把红旗规则里的细分类别映射到维度上。
+dimensions:
+  - id: financial_truth
+    name: 财务真实性
+    weight: 0.30
+    categories:
+      - 财务真实性
+      - 收入真实性
+      - 成本与费用质量
+      - 成本与毛利质量
+      - 盈利可持续性
+      - 偿债能力
+      - 负债完整性
+      - 资产质量
+      - 运营效率
+  - id: business
+    name: 业务可持续性
+    weight: 0.20
+    categories:
+      - 业务可持续性
+      - 业务稳定性
+  - id: legal
+    name: 法律合规
+    weight: 0.25
+    categories:
+      - 法律合规
+  - id: qualification
+    name: 资质有效性
+    weight: 0.10
+    categories:
+      - 资质有效性
+  - id: governance
+    name: 治理与管理层
+    weight: 0.15
+    categories:
+      - 管理层与股东
+
+facts:
+  - id: revenue
+    name: 营业收入
+    sources: [利润表, 纳税申报, 银行流水]
+  - id: net_profit
+    name: 净利润
+    sources: [利润表]
+  - id: total_assets
+    name: 总资产
+    sources: [资产负债表]
+  - id: lease_term
+    name: 租赁期限
+    sources: [租赁合同]
+  - id: litigation_amount
+    name: 诉讼金额
+    sources: [未决诉讼]
+  - id: controller_stake
+    name: 实控人持股比例
+    sources: [股东名册, 股权架构, 公司章程]

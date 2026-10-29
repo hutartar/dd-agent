@@ -1,0 +1,343 @@
+# 财务尽调红旗规则库
+# 每条规则: id, name, severity(high/medium/low), description, check_fn, explanation_template
+# check_fn 是一个Python lambda表达式，输入 analyzer 的数据字典，返回 (命中bool, 实际值, 阈值)
+
+rules:
+  - id: RF001
+    name: "资产总计为负"
+    severity: high
+    category: "财务真实性"
+    description: "资产负债表资产总计为负数，违反会计恒等式"
+    trigger: "total_assets < 0"
+    threshold: "0"
+    explanation: "资产总计为{value}元，为负数，报表严重不平衡，无法信赖"
+
+  - id: RF002
+    name: "实收资本为0但注册资本>0"
+    severity: high
+    category: "管理层与股东"
+    description: "股东全部认缴未实缴，公司无股东资金投入"
+    trigger: "paid_in_capital == 0 and registered_capital > 0"
+    threshold: "0"
+    explanation: "注册资本{reg_cap}万，实缴{paid_cap}元，股东零投入，兜底能力存疑"
+
+  - id: RF003
+    name: "净利润连续多月为0"
+    severity: high
+    category: "财务真实性"
+    description: "利润总额有波动但净利润始终为0，疑似未结转损益或人为调节"
+    trigger: "consecutive_zero_profit_months >= 6"
+    threshold: "6个月"
+    explanation: "连续{n}个月净利润为0，但利润总额有正有负，损益结转异常"
+
+  - id: RF004
+    name: "应收账款持续为负"
+    severity: medium
+    category: "财务真实性"
+    description: "应收账款为负数，通常是预收账款挂贷方或科目使用混乱"
+    trigger: "accounts_receivable < -100000"
+    threshold: "-10万"
+    explanation: "应收账款为{value}元（负数），疑似预收账款混入应收科目，需重分类"
+
+  - id: RF005
+    name: "应付账款快速增长"
+    severity: high
+    category: "财务真实性"
+    description: "应付账款持续增长，拖欠供应商款项趋势明显"
+    trigger: "accounts_payable_growth_pct > 50 and accounts_payable_trending_up >= 3"
+    threshold: "月环比增长50%+"
+    explanation: "应付账款从期初增长，增幅{pct}%，连续{n}个月上升，拖欠扩大"
+
+  - id: RF006
+    name: "货币资金持续下降"
+    severity: medium
+    category: "财务真实性"
+    description: "货币资金连续多月净流出，现金流紧张"
+    trigger: "cash_decline_months >= 4 and cash_decline_pct > 30"
+    threshold: "连续4月下降30%+"
+    explanation: "货币资金从{peak}万降至{curr}万，降幅{pct}%"
+
+  - id: RF007
+    name: "营业成本突增突降"
+    severity: medium
+    category: "财务真实性"
+    description: "单月营业成本环比波动超过50%，收入未同步波动，成本确认异常"
+    trigger: "cogs_mom_change > 0.5 and revenue_mom_change < 0.2"
+    threshold: "成本环比±50%但收入变动<20%"
+    explanation: "{month}营业成本环比变动{pct}%，但收入仅变动{rev_pct}%，成本确认时点异常"
+
+  - id: RF008
+    name: "收入三口径差异大"
+    severity: high
+    category: "收入真实性"
+    description: "利润表收入 vs PMS系统收入 vs 银行流水收入，月度差异超过30%"
+    trigger: "revenue_discrepancy_pct > 30"
+    threshold: "差异>30%"
+    explanation: "{month}利润表收入{a}万，PMS{b}万，银行转入{c}万，差异{d}%"
+
+  - id: RF009
+    name: "出租率低于30%的淡季月亏损"
+    severity: medium
+    category: "业务可持续性"
+    description: "出租率低于30%时，月收入无法覆盖固定成本（租金+人工）"
+    trigger: "occupancy < 30 and monthly_loss > 0"
+    threshold: "出租率<30%且月亏损"
+    explanation: "{month}出租率仅{occ}%，月亏损{loss}万，淡季经营压力大"
+
+  - id: RF010
+    name: "法定代表人近期变更"
+    severity: medium
+    category: "管理层与股东"
+    description: "尽调前6个月内法定代表人变更，实际控制人可能调整"
+    trigger: "legal_rep_change_months_ago <= 6"
+    threshold: "6个月内"
+    explanation: "{n}个月前法定代表人从{old}变更为{new}，需核实变更原因"
+
+  - id: RF011
+    name: "资质登记在出租方/第三方名下"
+    severity: high
+    category: "资质有效性"
+    description: "特种行业许可证、消防证等经营资质登记在第三方名下，承租方自身资质缺失"
+    trigger: "qualification_owner != company_name"
+    threshold: "证件主体≠经营主体"
+    explanation: "特种行业许可证登记在{owner}名下，与经营主体{company}不一致"
+
+  - id: RF012
+    name: "银行流水大额非经营转入"
+    severity: high
+    category: "收入真实性"
+    description: "银行流水中存在与主营业务无关的大额转入，疑似关联方走账或未入账收入"
+    trigger: "non_operating_inflow_amount > 500000"
+    threshold: "单笔/累计>50万"
+    explanation: "{counterparty}累计转入{amount}元，与酒店主营业务无关，需核实性质"
+
+  - id: RF013
+    name: "公司成立时间短"
+    severity: low
+    category: "管理层与股东"
+    description: "成立不足2年，经营历史短，无完整年度数据验证"
+    trigger: "company_age_months < 24"
+    threshold: "成立<24个月"
+    explanation: "公司成立仅{months}个月，经营历史短，数据样本不足"
+
+  - id: RF014
+    name: "毛利率异常波动"
+    severity: medium
+    category: "成本与毛利质量"
+    description: "月度毛利率波动超过20个百分点，盈利质量不稳定"
+    trigger: "gross_margin_std_dev > 0.2"
+    threshold: "毛利率标准差>20%"
+    explanation: "毛利率月均{avg}%，标准差{std}%，波动过大"
+
+  - id: RF015
+    name: "累计未分配利润为负且扩大"
+    severity: high
+    category: "盈利可持续性"
+    description: "累计亏损持续扩大，资不抵债风险上升"
+    trigger: "retained_earnings < -500000 and retained_earnings_trending_worsening >= 3"
+    threshold: "累计亏损>50万且连续3月恶化"
+    explanation: "未分配利润{value}元，连续{n}个月恶化，累计亏损扩大"
+
+  # === 新增规则 RF016-RF030 ===
+
+  - id: RF016
+    name: "资产负债率超过100%"
+    severity: high
+    category: "偿债能力"
+    description: "总资产小于总负债，已资不抵债"
+    trigger: "debt_to_asset_ratio > 1.0"
+    threshold: "资产负债率>100%"
+    explanation: "资产负债率{value}%，总资产已不足以覆盖总负债，资不抵债"
+
+  - id: RF017
+    name: "管理费用率过高"
+    severity: medium
+    category: "成本与费用质量"
+    description: "管理费用占收入比例超过30%，费用控制能力弱"
+    trigger: "admin_expense_ratio > 0.3"
+    threshold: "管理费用率>30%"
+    explanation: "管理费用率{value:.1%}，远超行业正常水平，费用管控不足"
+
+  - id: RF018
+    name: "销售费用率过高"
+    severity: medium
+    category: "成本与费用质量"
+    description: "销售费用（OTA佣金等）占收入比例超过20%，渠道成本过高"
+    trigger: "selling_expense_ratio > 0.2"
+    threshold: "销售费用率>20%"
+    explanation: "销售费用率{value:.1%}，OTA渠道佣金占比过高，盈利空间被压缩"
+
+  - id: RF019
+    name: "收入月度波动过大"
+    severity: low
+    category: "业务稳定性"
+    description: "月度收入变异系数超过40%，业务稳定性差"
+    trigger: "revenue_cv > 0.4"
+    threshold: "变异系数>40%"
+    explanation: "月收入标准差/均值={value:.1%}，收入波动大，经营不稳定"
+
+  - id: RF020
+    name: "其他应收款金额过大"
+    severity: medium
+    category: "资产质量"
+    description: "其他应收款占总资产比例超过20%，疑似关联方占用资金"
+    trigger: "other_receivables > abs(total_assets) * 0.2"
+    threshold: "占总资产>20%"
+    explanation: "其他应收款{value}元，占总资产比例过高，需核实是否为关联方借款"
+
+  - id: RF021
+    name: "其他应付款金额过大"
+    severity: medium
+    category: "负债完整性"
+    description: "其他应付款占总资产比例超过30%，疑似隐性负债"
+    trigger: "other_payables > abs(total_assets) * 0.3"
+    threshold: "占总资产>30%"
+    explanation: "其他应付款{value}元，占总资产比例过高，需核实是否为未入账负债"
+
+  - id: RF022
+    name: "累计净利润为负且亏损扩大"
+    severity: high
+    category: "盈利可持续性"
+    description: "累计净利润为负，且月度亏损有扩大趋势"
+    trigger: "total_net_profit < -1000000"
+    threshold: "累计亏损>100万"
+    explanation: "累计净利润{value}元，累计亏损已超百万，盈利能力存疑"
+
+  - id: RF023
+    name: "货币资金占总资产比例过低"
+    severity: medium
+    category: "偿债能力"
+    description: "货币资金占总资产比例低于10%，短期支付能力弱"
+    trigger: "cash / abs(total_assets) < 0.1 and cash > 0"
+    threshold: "货币资金/总资产<10%"
+    explanation: "货币资金{value}元，占总资产比例过低，短期偿债能力不足"
+
+  - id: RF024
+    name: "应收账款周转率过低"
+    severity: low
+    category: "运营效率"
+    description: "应收账款余额过大，回款速度慢"
+    trigger: "accounts_receivable > avg_monthly_revenue * 2"
+    threshold: "应收>月均收入2倍"
+    explanation: "应收账款{value}元，相当于2个月以上的收入，回款周期过长"
+
+  - id: RF025
+    name: "应付账款远大于应收账款"
+    severity: medium
+    category: "财务真实性"
+    description: "应付账款是应收账款的5倍以上，上下游议价能力严重失衡"
+    trigger: "abs(accounts_payable) > abs(accounts_receivable) * 5 and accounts_payable > 0"
+    threshold: "应付/应收>5倍"
+    explanation: "应付账款{ap}元，应收账款{ar}元，应付是应收的5倍以上，对上游占款严重"
+
+  - id: RF026
+    name: "毛利率低于20%"
+    severity: medium
+    category: "盈利可持续性"
+    description: "毛利率低于20%，主业盈利能力弱"
+    trigger: "gross_margin_avg < 0.2 and gross_margin_avg > 0"
+    threshold: "毛利率<20%"
+    explanation: "平均毛利率{value:.1%}，低于酒店行业正常水平，主业盈利空间有限"
+
+  - id: RF027
+    name: "毛利率为负"
+    severity: high
+    category: "盈利可持续性"
+    description: "平均毛利率为负，卖一单亏一单"
+    trigger: "gross_margin_avg < 0"
+    threshold: "毛利率<0"
+    explanation: "平均毛利率{value:.1%}，收入不足以覆盖直接成本，经营模式有问题"
+
+  - id: RF028
+    name: "月均收入低于50万"
+    severity: low
+    category: "业务可持续性"
+    description: "月均收入低于50万，规模过小，抗风险能力弱"
+    trigger: "avg_monthly_revenue < 500000"
+    threshold: "月均收入<50万"
+    explanation: "月均收入{value}元，规模偏小，固定成本分摊压力大"
+
+  - id: RF029
+    name: "实收资本与注册资本差距过大"
+    severity: medium
+    category: "管理层与股东"
+    description: "实缴资本占注册资本比例低于10%，股东投入不足"
+    trigger: "paid_in_capital / registered_capital < 0.1 and registered_capital > 0"
+    threshold: "实缴比例<10%"
+    explanation: "注册资本{reg_cap}万，实缴仅{paid_cap}元，实缴比例不足10%"
+
+  - id: RF030
+    name: "连续多月净利润为负"
+    severity: medium
+    category: "盈利可持续性"
+    description: "超过一半的月份净利润为负，盈利不稳定"
+    trigger: "total_zero_profit_months + (1 if total_net_profit < 0 else 0) > len_income * 0.5"
+    threshold: "亏损月占比>50%"
+    explanation: "亏损月份占比超过一半，经营波动大，盈利持续性存疑"
+
+  - id: RF031
+    name: "法人和股东频繁变更"
+    severity: high
+    category: "管理层与股东"
+    description: "公司成立短时间内，法人和股东多次变更，股权不稳定，疑似代持或频繁转手"
+    trigger: "change_records_count >= 20 and company_age_months <= 18"
+    threshold: "成立18个月内变更>20次"
+    explanation: "公司成立仅{months}个月，但工商变更记录达{count}条，法人/股东频繁变动，股权稳定性存疑"
+
+
+  # ===== 非财务红旗：不依赖报表，只看文件与主体信息 =====
+  - id: NF001
+    name: "缺少营业执照"
+    severity: high
+    category: "资质有效性"
+    description: "未找到营业执照，主体资格无法核验"
+    trigger: "license_count == 0"
+    explanation: "未找到营业执照，主体资格和经营范围无法核验"
+
+  - id: NF002
+    name: "缺少银行流水"
+    severity: medium
+    category: "财务真实性"
+    description: "未提供银行流水，收入缺少交叉验证来源"
+    trigger: "has_bank_flow == 0"
+    explanation: "未提供银行流水，收入真实性缺少交叉验证来源"
+
+  - id: NF003
+    name: "存在未决诉讼"
+    severity: high
+    category: "法律合规"
+    description: "存在未决诉讼或仲裁，或有负债需量化"
+    trigger: "litigation_count > 0"
+    explanation: "存在{litigation_count}项未决诉讼/仲裁，或有负债需核实金额"
+
+  - id: NF004
+    name: "存在行政处罚"
+    severity: high
+    category: "法律合规"
+    description: "存在行政处罚记录"
+    trigger: "penalty_count > 0"
+    explanation: "存在{penalty_count}条行政处罚记录，合规风险需关注"
+
+  - id: NF005
+    name: "工商变更频繁"
+    severity: medium
+    category: "管理层与股东"
+    description: "工商变更记录较多，股权稳定性存疑"
+    trigger: "change_records_count >= 10"
+    explanation: "工商变更{change_records_count}条，股权/控制权稳定性存疑"
+
+  - id: NF006
+    name: "缺少纳税申报"
+    severity: medium
+    category: "财务真实性"
+    description: "未提供纳税申报表，收入无法与申报数据比对"
+    trigger: "has_tax_return == 0"
+    explanation: "未提供纳税申报表，收入无法与申报数据比对"
+
+  - id: NF007
+    name: "诉讼金额未披露"
+    severity: medium
+    category: "法律合规"
+    description: "有诉讼记录但没有金额"
+    trigger: "litigation_count > 0 and litigation_amount == 0"
+    explanation: "有{litigation_count}项诉讼但未披露金额，或有负债无法量化"

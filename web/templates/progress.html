@@ -1,0 +1,379 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>分析中 - DD-Agent</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+            background: #f5f7fa;
+            color: #1d2129;
+            line-height: 1.6;
+        }
+        .container {
+            max-width: 900px;
+            margin: 40px auto;
+            padding: 0 24px;
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 32px;
+        }
+        .spinner {
+            width: 48px;
+            height: 48px;
+            border: 4px solid #e5e6eb;
+            border-top: 4px solid #165DFF;
+            border-radius: 50%;
+            margin: 0 auto 20px;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .header h1 {
+            font-size: 24px;
+            margin-bottom: 8px;
+        }
+        .header p {
+            color: #86909c;
+            font-size: 15px;
+        }
+        .progress-card {
+            background: white;
+            border-radius: 12px;
+            padding: 24px;
+            margin-bottom: 24px;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+        }
+        .progress-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+        .progress-percent {
+            font-size: 32px;
+            font-weight: 700;
+            color: #165DFF;
+        }
+        .progress-step {
+            font-size: 14px;
+            color: #4e5969;
+        }
+        .progress-bar-bg {
+            width: 100%;
+            height: 12px;
+            background: #f2f3f5;
+            border-radius: 6px;
+            overflow: hidden;
+            margin-bottom: 12px;
+        }
+        .progress-bar-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #165DFF, #4080ff);
+            border-radius: 6px;
+            transition: width 0.5s ease;
+        }
+        .progress-footer {
+            display: flex;
+            justify-content: space-between;
+            font-size: 13px;
+            color: #86909c;
+        }
+        .log-card {
+            background: #1e1e1e;
+            border-radius: 12px;
+            padding: 24px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+        }
+        .log-title {
+            color: #d4d4d4;
+            font-size: 14px;
+            margin-bottom: 16px;
+            padding-bottom: 12px;
+            border-bottom: 1px solid #333;
+        }
+        .log-content {
+            font-family: "Consolas", "Monaco", monospace;
+            font-size: 13px;
+            line-height: 1.8;
+            color: #9cdcfe;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        .log-line {
+            padding: 2px 0;
+        }
+        .log-line.success {
+            color: #4ec9b0;
+        }
+        .log-line.info {
+            color: #dcdcaa;
+        }
+        .log-line.warning {
+            color: #ce9178;
+        }
+        .btn {
+            display: inline-block;
+            padding: 12px 32px;
+            background: #165DFF;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-size: 16px;
+            cursor: pointer;
+            margin-top: 24px;
+            text-decoration: none;
+            text-align: center;
+        }
+        .btn:hover {
+            background: #0E42D2;
+        }
+        .center {
+            text-align: center;
+        }
+        .btn-stop {
+            background: #fff;
+            color: #cb2634;
+            border: 1px solid #fbaca3;
+            font-size: 14px;
+            padding: 9px 22px;
+            margin-top: 16px;
+        }
+        .btn-stop:hover { background: #ffece8; }
+        .stale-hint {
+            margin-top: 14px;
+            padding: 12px 16px;
+            border-radius: 8px;
+            background: #fff7e8;
+            border: 1px solid #ffe4ba;
+            color: #d25f00;
+            font-size: 14px;
+            text-align: center;
+        }
+        .fail-box {
+            background: #fff;
+            border-radius: 12px;
+            padding: 28px;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+            border: 1px solid #ffd2cc;
+        }
+        .fail-box h2 {
+            color: #cb2634;
+            font-size: 20px;
+            margin-bottom: 10px;
+        }
+        .fail-box p {
+            color: #4e5969;
+            font-size: 14px;
+            margin-bottom: 18px;
+            word-break: break-all;
+        }
+        .fail-actions {
+            display: flex;
+            gap: 12px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="spinner"></div>
+            <h1>正在分析项目资料...</h1>
+            <p>每一步进展都会实时显示在下方</p>
+        </div>
+
+        <!-- 进度卡片 -->
+        <div class="progress-card">
+            <div class="progress-header">
+                <div class="progress-percent" id="progressPercent">0%</div>
+                <div class="progress-step" id="currentStep">正在初始化...</div>
+            </div>
+            <div class="progress-bar-bg">
+                <div class="progress-bar-fill" id="progressBar" style="width: 0%"></div>
+            </div>
+            <div class="progress-footer">
+                <span>已运行：<span id="elapsedTime">0分0秒</span></span>
+                <span>预计剩余：<span id="predictedTime">约4分20秒</span></span>
+            </div>
+        </div>
+
+        <div class="log-card">
+            <div class="log-title">📋 实时分析日志</div>
+            <div class="log-content" id="logContent">
+                <div class="log-line">等待开始...</div>
+            </div>
+        </div>
+
+        <div id="staleHint" class="stale-hint" style="display: none;">
+            超过 10 分钟没有新日志，任务可能卡住了。可以点「中止分析」，或者继续等。
+        </div>
+
+        <div class="center" id="stopSection">
+            <button id="stopBtn" class="btn btn-stop" type="button">中止分析</button>
+        </div>
+
+        <div class="center" id="doneSection" style="display: none;">
+            <a href="/report/{{ task_id }}" class="btn">查看报告</a>
+        </div>
+
+        <div class="center" id="failSection" style="display: none;">
+            <div class="fail-box">
+                <h2 id="failTitle">分析失败</h2>
+                <p id="failMessage"></p>
+                <div class="fail-actions">
+                    <button id="retryBtn" class="btn" type="button">用原资料重跑</button>
+                    <a href="/report/{{ task_id }}" class="btn" style="background:#f2f3f5;color:#4e5969;">查看完整日志</a>
+                    <a href="/" class="btn" style="background:#f2f3f5;color:#4e5969;">返回首页</a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const taskId = '{{ task_id }}';
+        let lastLogCount = 0;
+
+        async function fetchLogs() {
+            try {
+                const response = await fetch(`/api/logs/${taskId}`);
+                const data = await response.json();
+
+                const logContent = document.getElementById('logContent');
+                
+                // 清空重绘（只显示最后50行）
+                logContent.innerHTML = '';
+                data.logs.forEach(line => {
+                    const div = document.createElement('div');
+                    div.className = 'log-line';
+                    
+                    // 简单的颜色判断
+                    if (line.includes('✅') || line.includes('完成')) {
+                        div.className += ' success';
+                    } else if (line.includes('Step') || line.includes('===')) {
+                        div.className += ' info';
+                    } else if (line.includes('⚠️') || line.includes('跳过')) {
+                        div.className += ' warning';
+                    }
+                    
+                    div.textContent = line;
+                    logContent.appendChild(div);
+                });
+
+                // 自动滚动到底部
+                logContent.scrollTop = logContent.scrollHeight;
+
+                // 更新进度条
+                const progress = data.progress || 0;
+                document.getElementById('progressPercent').textContent = progress + '%';
+                document.getElementById('progressBar').style.width = progress + '%';
+                document.getElementById('currentStep').textContent = data.current_step || '正在分析...';
+                
+                // 显示已运行时间 + 预测剩余时间
+                document.getElementById('elapsedTime').textContent = data.elapsed_time || '0分0秒';
+                document.getElementById('predictedTime').textContent = data.predicted_time || '计算中...';
+
+                // 卡住提示
+                document.getElementById('staleHint').style.display = data.stale ? 'block' : 'none';
+
+                // 检查是否完成
+                if (data.done) {
+                    document.querySelector('.spinner').style.display = 'none';
+                    document.getElementById('stopSection').style.display = 'none';
+                    document.getElementById('progressPercent').textContent = '100%';
+                    document.getElementById('progressBar').style.width = '100%';
+                    document.getElementById('elapsedTime').textContent = data.elapsed_time || '已完成';
+
+                    if (data.status === 'failed') {
+                        document.querySelector('.header h1').textContent = '❌ 分析失败';
+                        document.getElementById('currentStep').textContent = '分析失败';
+                        document.getElementById('predictedTime').textContent = '—';
+                        document.getElementById('failSection').style.display = 'block';
+                        document.getElementById('failTitle').textContent = '分析失败';
+                        document.getElementById('failMessage').textContent = data.error || '没有拿到具体错误，请查看完整日志。';
+                    } else if (data.status === 'stopped') {
+                        document.querySelector('.header h1').textContent = '⏹ 已中止';
+                        document.getElementById('currentStep').textContent = '已中止';
+                        document.getElementById('predictedTime').textContent = '—';
+                        document.getElementById('failSection').style.display = 'block';
+                        document.getElementById('failTitle').textContent = '分析已中止';
+                        document.getElementById('failMessage').textContent = '任务被手动中止，已生成的中间结果保留。';
+                    } else {
+                        document.querySelector('.header h1').textContent = '✅ 分析完成！';
+                        document.getElementById('currentStep').textContent = '分析完成！';
+                        document.getElementById('predictedTime').textContent = '已完成';
+                        document.getElementById('doneSection').style.display = 'block';
+                        if (data.error_level) {
+                            const hint = document.getElementById('staleHint');
+                            const modules = (data.degraded_modules || []).join('、') || '部分模块';
+                            hint.style.display = 'block';
+                            hint.textContent = '⚠️ 部分模块未成功执行：' + modules + '，相关结论缺失，可信度下降。';
+                        }
+                    }
+                    return; // 停止轮询
+                }
+
+                // 继续轮询
+                setTimeout(fetchLogs, 1000);
+            } catch (e) {
+                console.error('获取日志失败:', e);
+                setTimeout(fetchLogs, 2000);
+            }
+        }
+
+        // 中止按钮
+        const stopBtn = document.getElementById('stopBtn');
+        if (stopBtn) {
+            stopBtn.addEventListener('click', async () => {
+                if (!confirm('确定中止这次分析吗？已生成的中间结果会保留。')) {
+                    return;
+                }
+                stopBtn.disabled = true;
+                stopBtn.textContent = '正在中止…';
+                try {
+                    await fetch(`/api/stop/${taskId}`, { method: 'POST' });
+                } catch (e) {
+                    console.error(e);
+                }
+                location.reload();
+            });
+        }
+
+        const retryBtn = document.getElementById('retryBtn');
+        if (retryBtn) {
+            retryBtn.addEventListener('click', async () => {
+                retryBtn.disabled = true;
+                retryBtn.textContent = '正在重跑…';
+                try {
+                    const resp = await fetch(`/retry/${taskId}`, { method: 'POST' });
+                    const data = await resp.json();
+                    if (data.ok) {
+                        location.reload();
+                    } else {
+                        alert(data.message || '重试失败');
+                        retryBtn.disabled = false;
+                        retryBtn.textContent = '用原资料重跑';
+                    }
+                } catch (e) {
+                    alert('重试失败：' + e);
+                    retryBtn.disabled = false;
+                    retryBtn.textContent = '用原资料重跑';
+                }
+            });
+        }
+
+        // 开始轮询
+        fetchLogs();
+    </script>
+</body>
+</html>

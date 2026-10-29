@@ -1,0 +1,75 @@
+# ============================================================
+# DD-Agent GitHub 上传忽略规则
+# 注意：本文件只决定 Git 暂存哪些内容，不会删除本地已有文件。
+# ============================================================
+
+# ---------- 1. Python 缓存与虚拟环境 ----------
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.coverage
+htmlcov/
+*.egg-info/
+dist/
+build/
+.venv/
+venv/
+env/
+
+# ---------- 2. 本地敏感配置（绝不入库）----------
+# 真实密码、API Key、session 密钥、密码哈希、访客加密配置
+.env
+data/auth.json
+data/secret_key
+data/settings.json
+data/visitor_secret.key
+data/visitors/
+data/classify_overrides.json
+
+# ---------- 3. 运行产物与用户资料（本地结果，含真实企业数据）----------
+# 历史分析任务：报告、图表、日志、解压原件、OCR 缓存、证据归档
+web/results/
+web/uploads/
+web/test_output/
+# CLI / 本地直跑输出目录
+output/
+# .doc 转换缓存、样本与案例（运行时自动重建）
+data/converted/
+data/cases/
+data/samples/
+
+# ---------- 4. 运行期临时文件 ----------
+*.log
+*.tmp
+*.bak
+test_ocr_result.txt
+test_ocr_error.txt
+input.zip
+.ocr_cache/
+
+# ---------- 5. 系统 / IDE ----------
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# ---------- 6. 本地联调测试（依赖本机真实资料与绝对路径，本地保留、不入库）----------
+tests/test_analyzer_e2e.py
+tests/test_crosscheck_3way.py
+tests/test_crosscheck_e2e.py
+tests/test_e2e.py
+tests/test_full_pipeline.py
+tests/test_import.py
+tests/test_inventory_e2e.py
+tests/test_ocr_real.py
+tests/test_ocr.py
+tests/test_redflag_e2e.py
+
+# ---------- 7. 备份 ----------
+backup-*
+
+# ---------- 8. 本地交接 / 盘点文档（工作记录，不入库）----------
+项目盘点与GitHub上传清单.md
+

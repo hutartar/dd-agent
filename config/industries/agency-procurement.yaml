@@ -1,0 +1,125 @@
+# 代理采购 / 供应链 / 贸易
+id: agency-procurement
+name: 代理采购
+extends: generic
+description: 供应链、贸易、代理采购，关注贸易背景真实性、货权、资金闭环和上下游集中度
+
+categories:
+  - category: 采购合同
+    keywords: [采购合同, 采购订单, 供货合同, 采购协议, 订货单]
+    module: legal
+  - category: 销售合同
+    keywords: [销售合同, 销售订单, 供货确认, 购销合同]
+    module: legal
+  - category: 发票
+    keywords: [发票, 增值税专用发票, 发票清单, 进项发票, 销项发票]
+    module: financial
+  - category: 物流单据
+    keywords: [物流, 运单, 提单, 入库单, 出库单, 签收单, 运输单据]
+    module: business
+  - category: 仓单/监管
+    keywords: [仓单, 监管协议, 在库证明, 质押监管, 仓储合同]
+    module: legal
+  - category: 对账单
+    keywords: [对账单, 结算单, 往来对账, 应收对账]
+    module: financial
+
+metrics:
+  - id: top5_customer_ratio
+    name: 前五大客户集中度
+    benchmark: "<=50%"
+  - id: top5_supplier_ratio
+    name: 前五大供应商集中度
+    benchmark: "<=50%"
+  - id: gross_margin
+    name: 毛利率
+    benchmark: "3%-15%"
+
+required_categories:
+  - 采购合同
+  - 销售合同
+  - 发票
+  - 物流单据
+
+redflags:
+  - id: AP001
+    name: 缺物流单据
+    severity: high
+    category: 业务可持续性
+    description: 有采购/销售合同但未见物流单据，贸易背景存疑
+    trigger: "logistics_docs == 0"
+    explanation: "合同存在但没有任何物流单据，无法验证货物真实流转"
+  - id: AP002
+    name: 客户集中度过高
+    severity: medium
+    category: 业务可持续性
+    description: 前五大客户占比超过 70%
+    trigger: "top5_customer_ratio > 0.7"
+    explanation: "前五大客户占比{top5_customer_ratio:.0%}，客户集中度过高"
+  - id: AP003
+    name: 供应商集中度过高
+    severity: medium
+    category: 业务可持续性
+    description: 前五大供应商占比超过 70%
+    trigger: "top5_supplier_ratio > 0.7"
+    explanation: "前五大供应商占比{top5_supplier_ratio:.0%}，供应商集中度过高"
+  - id: AP004
+    name: 未见仓单或监管协议
+    severity: high
+    category: 法律合规
+    description: 涉及货权但未见仓单/监管协议
+    trigger: "warehouse_docs == 0"
+    explanation: "没有仓单或监管协议，货权控制无法验证"
+
+sections:
+  - id: trade
+    title: 贸易背景与三流合一
+    kind: trade_authenticity
+  - id: concentration
+    title: 上下游集中度
+    kind: concentration
+
+dimensions:
+  - id: trade_authenticity
+    name: 贸易背景真实性
+    weight: 0.25
+    categories: [业务可持续性, 业务稳定性]
+  - id: goods_control
+    name: 货权控制
+    weight: 0.20
+    categories: [法律合规]
+  - id: concentration
+    name: 上下游集中度
+    weight: 0.15
+  - id: cash_closure
+    name: 资金闭环
+    weight: 0.15
+    categories: [财务真实性, 收入真实性]
+  - id: price_risk
+    name: 价格与毛利风险
+    weight: 0.10
+    categories: [成本与毛利质量, 盈利可持续性]
+  - id: compliance
+    name: 主体与合规
+    weight: 0.15
+    categories: [资质有效性, 管理层与股东, 偿债能力, 资产质量]
+
+facts:
+  - id: contract_amount
+    name: 合同金额
+    sources: [采购合同, 销售合同]
+  - id: invoice_amount
+    name: 发票金额
+    sources: [发票]
+  - id: logistics_amount
+    name: 物流单据金额
+    sources: [物流单据]
+  - id: top5_customer_ratio
+    name: 前五大客户占比
+    sources: [销售合同, 对账单]
+  - id: top5_supplier_ratio
+    name: 前五大供应商占比
+    sources: [采购合同, 对账单]
+  - id: warehouse_receipt
+    name: 仓单/监管
+    sources: [仓单/监管]

@@ -1,0 +1,87 @@
+# 文旅 / 景区 / 主题公园 / 旅行社
+id: culture-tourism
+name: 文旅
+extends: generic
+description: 景区、文旅小镇、主题公园、旅行社，关注客流、门票结构、特许经营和政策
+
+categories:
+  - category: 景区运营数据
+    keywords: [游客量, 接待人数, 旅游人次, 门票, 票务, 客流, 二次消费, 游客分析]
+    module: business
+  - category: 特许经营
+    keywords: [特许经营, 景区经营权, 文旅项目, 特许协议, 经营权]
+    module: legal
+  - category: 政策补贴
+    keywords: [补贴, 专项资金, 文旅基金, 财政扶持, 政策文件]
+    module: business
+  - category: 规划设计资料
+    keywords: [文旅规划, 景区规划, 设计方案, 可研报告]
+    module: business
+
+metrics:
+  - id: visitor_growth
+    name: 客流增速
+    benchmark: ">=0%"
+  - id: ticket_revenue_share
+    name: 门票收入占比
+    benchmark: "<=70%"
+  - id: secondary_consumption_ratio
+    name: 二次消费占比
+    benchmark: ">=30%"
+
+required_categories:
+  - 特许经营
+  - 景区运营数据
+  - 规划设计资料
+
+redflags:
+  - id: TOUR001
+    name: 客流下滑
+    severity: high
+    category: 业务可持续性
+    description: 客流同比下滑超过 20%
+    trigger: "visitor_growth < -0.2"
+    explanation: "客流同比下滑{visitor_growth:.0%}，项目吸引力或市场环境明显恶化"
+  - id: TOUR002
+    name: 门票依赖过重
+    severity: medium
+    category: 业务可持续性
+    description: 门票收入占比超过 80%，二次消费不足
+    trigger: "ticket_revenue_share > 0.8"
+    explanation: "门票收入占比{ticket_revenue_share:.0%}，二次消费不足，抗风险能力弱"
+  - id: TOUR003
+    name: 特许经营权到期临近
+    severity: high
+    category: 法律合规
+    description: 特许经营权剩余期限不足 3 年
+    trigger: "concession_remaining_years < 3"
+    explanation: "特许经营权剩余约{concession_remaining_years:.1f}年，续期存在重大不确定性"
+
+sections:
+  - id: operations
+    title: 客流与经营分析
+    kind: tourism_operations
+  - id: concession
+    title: 特许经营与政策依赖
+    kind: concession
+
+dimensions:
+  - id: traffic
+    name: 客流与收入
+    weight: 0.30
+    categories: [业务可持续性, 业务稳定性]
+  - id: structure
+    name: 收入结构
+    weight: 0.20
+    categories: [收入真实性, 盈利可持续性]
+  - id: concession
+    name: 特许经营与政策
+    weight: 0.20
+    categories: [法律合规, 资质有效性]
+  - id: financial
+    name: 财务真实性
+    weight: 0.20
+    categories: [财务真实性, 成本与费用质量, 偿债能力, 资产质量]
+  - id: safety
+    name: 安全与舆情
+    weight: 0.10

@@ -1,0 +1,7 @@
+{$DD_DOMAIN:localhost} {
+    encode gzip
+    reverse_proxy app:5000
+    request_body {
+        max_size {$DD_MAX_UPLOAD_MB:200}MB
+    }
+}
